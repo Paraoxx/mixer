@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ItemCard } from "../components/ItemCard";
+import { ItemDetails } from "../components/ItemDetails";
 import { mockData } from "../mockData";
 
 const filters = ["Todos", "Mangás", "Figures", "Jogos", "Cartas"];
 
 export function Gallery() {
     const [activeFilter, setActiveFilter] = useState("Todos");
+    const [selectedItem, setSelectedItem] = useState(null);
 
     const filteredItems = activeFilter === "Todos"
         ? mockData
@@ -28,8 +30,8 @@ export function Gallery() {
                                 key={filter}
                                 onClick={() => setActiveFilter(filter)}
                                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                                        ? "bg-anime-accent text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
-                                        : "bg-anime-card border border-anime-border text-slate-300 hover:bg-slate-800"
+                                    ? "bg-anime-accent text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                                    : "bg-anime-card border border-anime-border text-slate-300 hover:bg-slate-800"
                                     }`}
                             >
                                 {filter}
@@ -54,9 +56,8 @@ export function Gallery() {
                                 key={item.id}
                             >
                                 <ItemCard
-                                    title={item.title}
-                                    subtitle={item.subtitle}
-                                    imageUrl={item.imageUrl}
+                                    item={item}
+                                    onClick={() => setSelectedItem(item)}
                                 />
                             </motion.div>
                         ))}
@@ -69,6 +70,15 @@ export function Gallery() {
                     </div>
                 )}
             </div>
+
+            <AnimatePresence>
+                {selectedItem && (
+                    <ItemDetails
+                        item={selectedItem}
+                        onClose={() => setSelectedItem(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

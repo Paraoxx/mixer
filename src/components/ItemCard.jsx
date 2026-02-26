@@ -2,14 +2,14 @@ import { motion } from "framer-motion"
 import { cn } from "../lib/utils"
 
 export function ItemCard({
-    title = "Unknown Item",
-    subtitle = "Category",
-    imageUrl = "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop",
+    item,
     className,
     onClick
 }) {
+    const { id, title = "Unknown Item", subtitle = "Category", imageUrl = "https://images.unsplash.com/photo-1618336753974-aae8e04506aa?q=80&w=800&auto=format&fit=crop" } = item || {};
     return (
         <motion.div
+            layoutId={`card-container-${id}`}
             onClick={onClick}
             className={cn(
                 "group relative flex flex-col cursor-pointer overflow-hidden rounded-xl",
@@ -29,6 +29,7 @@ export function ItemCard({
             {/* Image Section */}
             <div className="relative aspect-[3/4] w-full overflow-hidden bg-black/40">
                 <motion.img
+                    layoutId={`card-image-${id}`}
                     src={imageUrl}
                     alt={title}
                     className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
@@ -40,14 +41,17 @@ export function ItemCard({
             </div>
 
             {/* Content Section */}
-            <div className="absolute bottom-0 w-full p-4 flex flex-col gap-1 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+            <motion.div
+                layoutId={`card-content-${id}`}
+                className="absolute bottom-0 w-full p-4 flex flex-col gap-1 translate-y-2 group-hover:translate-y-0 transition-transform duration-300"
+            >
                 <h3 className="font-bold text-lg tracking-wide text-white drop-shadow-md">
                     {title}
                 </h3>
                 <p className="text-sm text-slate-400 font-medium tracking-wider uppercase text-[10px] letter-spacing-1 opacity-80 group-hover:opacity-100 transition-opacity">
                     {subtitle}
                 </p>
-            </div>
+            </motion.div>
         </motion.div>
     )
 }
