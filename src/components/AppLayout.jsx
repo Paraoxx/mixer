@@ -11,7 +11,7 @@ export function AppLayout() {
     ]
 
     return (
-        <div className="flex h-screen bg-anime-bg text-white overflow-hidden">
+        <div className="flex h-screen bg-anime-bg text-white overflow-hidden bg-halftone">
             {/* Sidebar Navigation */}
             <motion.aside
                 initial={{ x: -250 }}
@@ -21,13 +21,26 @@ export function AppLayout() {
             >
                 <div className="p-6 h-full flex flex-col">
                     {/* Logo / Title Area */}
-                    <div className="mb-12 cursor-default pt-2">
-                        <h1 className="text-2xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                            KOREKUSHON
-                        </h1>
-                        <p className="text-xs tracking-[0.2em] text-anime-accent mt-1 uppercase font-bold">
-                            Collections Library
-                        </p>
+                    <div className="mb-12 cursor-default pt-2 relative">
+                        <div className="flex flex-col transform -skew-x-12">
+                            <h1 className="text-3xl font-black tracking-tighter uppercase relative z-10 flex flex-col items-start gap-1">
+                                <span
+                                    className="bg-red-600 text-white px-3 py-1 transform -rotate-2 shadow-[4px_4px_0px_rgba(0,0,0,1)]"
+                                    style={{ clipPath: 'polygon(0 0, 100% 5%, 95% 100%, 5% 95%)' }}
+                                >
+                                    MINHA
+                                </span>
+                                <span
+                                    className="bg-white text-black px-3 py-1 transform rotate-1 shadow-[4px_4px_0px_#dc2626] ml-4"
+                                    style={{ clipPath: 'polygon(5% 0, 100% 0, 95% 100%, 0 100%)' }}
+                                >
+                                    COLEÇÃO
+                                </span>
+                            </h1>
+                            <p className="text-[10px] tracking-[0.3em] text-white bg-black px-2 mt-4 uppercase font-black w-max ml-8 shadow-[2px_2px_0_#dc2626] transform rotate-1">
+                                Phantom Thieves
+                            </p>
+                        </div>
                     </div>
 
                     {/* Navigation Links */}
@@ -62,20 +75,15 @@ export function AppLayout() {
                         ))}
                     </nav>
 
-                    {/* User Profile Snippet */}
-                    <div className="mt-auto border-t border-anime-border/50 pt-6">
-                        <div className="flex items-center gap-3 cursor-pointer group">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-anime-accent to-purple-800 p-[2px]">
-                                <img
-                                    src="https://images.unsplash.com/photo-1544256718-3b61023a5472?w=100&h=100&fit=crop"
-                                    alt="Avatar"
-                                    className="w-full h-full rounded-full object-cover"
-                                />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold tracking-wide group-hover:text-anime-accent transition-colors">Mateus</p>
-                                <p className="text-xs text-gray-500">Pro Curator</p>
-                            </div>
+                    {/* About Me snippet */}
+                    <div className="mt-auto pt-6">
+                        <div
+                            className="bg-black text-white p-4 border-l-4 border-red-600 shadow-[2px_2px_0_#fff] transform -rotate-1"
+                            style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 0% 100%)' }}
+                        >
+                            <p className="text-xs font-medium leading-relaxed italic opacity-90">
+                                "Esse é um site particular voltado para catalogação pessoal de itens redpill que eu tenho, se voce nao souber quebrar a pedra grande, peço para que se retire dele."
+                            </p>
                         </div>
                     </div>
                 </div>
