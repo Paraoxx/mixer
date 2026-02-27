@@ -1,8 +1,17 @@
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Plus } from "lucide-react"
-import { mockData } from "../mockData"
 
 export function Home() {
+    const [items, setItems] = useState([]);
+
+    useEffect(() => {
+        fetch("http://localhost:3000/items")
+            .then((response) => response.json())
+            .then((data) => setItems(data))
+            .catch((error) => console.error("Error fetching items:", error));
+    }, []);
+
     return (
         <div className="space-y-12 pb-12">
             {/* About Me Top Section */}
@@ -43,12 +52,12 @@ export function Home() {
                         <div className="h-1 w-32 bg-white mt-1 shadow-[2px_2px_0_rgba(220,38,38,1)]" />
                     </div>
                     <div className="bg-red-600 text-black px-3 py-1 font-black italic text-sm border-2 border-black transform rotate-2">
-                        {mockData.length} ITENS
+                        {items.length} ITENS
                     </div>
                 </div>
 
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
-                    {mockData.map((item, index) => {
+                    {items.map((item, index) => {
                         // Determine border color based on category
                         const getBorderColor = (category) => {
                             switch (category) {
@@ -72,7 +81,7 @@ export function Home() {
                                 }}
                             >
                                 {/* Base Border */}
-                                <div className={`absolute inset-0 border-2 ${getBorderColor(item.subtitle)} opacity-70 transition-colors z-10 pointer-events-none group-hover:border-red-600 group-hover:border-4 group-hover:opacity-100`} />
+                                <div className={`absolute inset-0 border-2 ${getBorderColor(item.category)} opacity-70 transition-colors z-10 pointer-events-none group-hover:border-red-600 group-hover:border-4 group-hover:opacity-100`} />
 
                                 {/* Image */}
                                 <img
