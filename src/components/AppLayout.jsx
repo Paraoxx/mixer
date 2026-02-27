@@ -6,7 +6,6 @@ export function AppLayout() {
     const navLinks = [
         { name: "Explore", path: "/", icon: <Search size={20} /> },
         { name: "My Collections", path: "/collections", icon: <Library size={20} /> },
-        { name: "Categories", path: "/categories", icon: <Layers size={20} /> },
         { name: "Settings", path: "/settings", icon: <Settings size={20} /> },
     ]
 
@@ -75,16 +74,13 @@ export function AppLayout() {
                         ))}
                     </nav>
 
-                    {/* About Me snippet */}
-                    <div className="mt-auto pt-6">
-                        <div
-                            className="bg-black text-white p-4 border-l-4 border-red-600 shadow-[2px_2px_0_#fff] transform -rotate-1"
-                            style={{ clipPath: 'polygon(0 0, 100% 0, 95% 100%, 0% 100%)' }}
-                        >
-                            <p className="text-xs font-medium leading-relaxed italic opacity-90">
-                                "Esse é um site particular voltado para catalogação pessoal de itens redpill que eu tenho, se voce nao souber quebrar a pedra grande, peço para que se retire dele."
-                            </p>
-                        </div>
+                    {/* Chibis Ink Art Container */}
+                    <div className="mt-auto pt-6 w-full flex justify-center overflow-hidden">
+                        <img
+                            src="/src/assets/chibis-ink.png"
+                            alt="Persona 5 Chibis Ink Art"
+                            className="w-full h-auto object-contain pointer-events-none drop-shadow-[2px_2px_0_rgba(220,38,38,0.5)] transform hover:scale-105 transition-transform duration-500"
+                        />
                     </div>
                 </div>
             </motion.aside>

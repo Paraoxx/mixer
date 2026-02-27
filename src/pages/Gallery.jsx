@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Filter, RefreshCw } from "lucide-react";
 import { ItemCard } from "../components/ItemCard";
 import { ItemDetails } from "../components/ItemDetails";
 import { mockData } from "../mockData";
@@ -8,15 +9,40 @@ const filters = ["Mangás", "Figures", "Jogos", "Cartas", "Desejáveis"];
 
 export function Gallery() {
     const [activeFilter, setActiveFilter] = useState("Mangás");
+    const [subFilter, setSubFilter] = useState("Todos");
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const dropdownRef = useRef(null);
 
-    const filteredItems = mockData.filter(item => item.subtitle === activeFilter);
+    // Fechar dropdown ao clicar fora
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const filteredItems = mockData.filter(item => {
+        const matchesMainCategory = item.subtitle === activeFilter;
+        if (!matchesMainCategory) return false;
+
+        // Apply sub-filter logic only if category is 'Jogos' and subFilter is not 'Todos'
+        if (activeFilter === "Jogos" && subFilter !== "Todos") {
+            const expectFormato = subFilter === "Físicos" ? "Físico" : "Digital";
+            return item.details?.formato === expectFormato;
+        }
+
+        return true;
+    });
 
     return (
         <div className="p-8 max-w-7xl mx-auto min-h-screen">
             <div className="flex flex-col gap-8">
                 {/* Header & Filters */}
-                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                     <div className="transform -skew-x-6">
                         <h1 className="text-4xl md:text-5xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626]">GALERIA</h1>
                         <p className="text-white bg-black px-2 mt-2 w-max text-xs uppercase font-bold tracking-widest shadow-[2px_2px_0_#dc2626]">
@@ -24,24 +50,81 @@ export function Gallery() {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-4 mt-6 md:mt-0">
-                        {filters.map((filter, i) => (
-                            <motion.button
-                                key={filter}
-                                onClick={() => setActiveFilter(filter)}
-                                whileHover={{ scale: 1.05, rotate: i % 2 === 0 ? 3 : -3 }}
-                                whileTap={{ scale: 0.95 }}
-                                className={`px-6 py-2 text-sm md:text-base font-black uppercase tracking-widest transition-none border-2 ${activeFilter === filter
-                                    ? "bg-red-600 text-black border-red-600 shadow-[4px_4px_0px_#fff]"
-                                    : "bg-black text-white border-white hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_#fff]"
-                                    }`}
-                                style={{
-                                    clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)",
-                                }}
-                            >
-                                {filter}
-                            </motion.button>
-                        ))}
+                    {/* Container de Filtros */}
+                    <div className="flex flex-col md:items-end gap-3 mt-6 md:mt-0 w-full md:w-auto">
+                        <div className="w-full flex overflow-x-auto pb-2 md:pb-0 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                            <div className="flex gap-4 min-w-max">
+                                {filters.map((filter, i) => (
+                                    <motion.button
+                                        key={filter}
+                                        onClick={() => {
+                                            setActiveFilter(filter);
+                                            if (filter !== "Jogos") setSubFilter("Todos");
+                                        }}
+                                        whileHover={{ scale: 1.05, rotate: i % 2 === 0 ? 3 : -3 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className={`px-6 py-2 text-sm md:text-base font-black uppercase tracking-widest transition-none border-2 shrink-0 ${activeFilter === filter
+                                            ? "bg-red-600 text-black border-red-600 shadow-[4px_4px_0px_#fff]"
+                                            : "bg-black text-white border-white hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_#fff]"
+                                            }`}
+                                        style={{
+                                            clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)",
+                                        }}
+                                    >
+                                        {filter}
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Sub-filtro Dropdown para Jogos - Nova linha à direita */}
+                        <AnimatePresence>
+                            {activeFilter === "Jogos" && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="relative shrink-0 flex justify-end w-full"
+                                    ref={dropdownRef}
+                                >
+                                    <motion.button
+                                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                        whileHover={{ scale: 1.05, rotate: -2 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className="flex items-center gap-2 bg-black text-white px-4 py-1.5 text-xs md:text-sm border-2 border-white hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[3px_3px_0px_#fff] transition-colors font-bold uppercase tracking-widest"
+                                        style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                                    >
+                                        <Filter size={16} className="transform -skew-x-12" />
+                                        <span>Mídia: {subFilter}</span>
+                                    </motion.button>
+
+                                    <AnimatePresence>
+                                        {isDropdownOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="absolute top-full right-0 mt-2 w-48 bg-black border-2 border-red-600 shadow-[4px_4px_0_#fff] z-50 p-1 flex flex-col gap-1"
+                                                style={{ clipPath: "polygon(0 0, 100% 0, 95% 100%, 0% 100%)" }}
+                                            >
+                                                {["Todos", "Físicos", "Digitais"].map((opt) => (
+                                                    <button
+                                                        key={opt}
+                                                        onClick={() => {
+                                                            setSubFilter(opt);
+                                                            setIsDropdownOpen(false);
+                                                        }}
+                                                        className={`text-left px-3 py-1.5 text-xs font-black uppercase tracking-wider transition-colors ${subFilter === opt ? "bg-red-600 text-black border-l-4 border-white" : "text-white hover:bg-white/10"}`}
+                                                    >
+                                                        {opt}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
 
@@ -77,11 +160,30 @@ export function Gallery() {
 
                 {/* Database Explorer View */}
                 <div className="mt-12">
-                    <div className="mb-6 transform -skew-x-6">
-                        <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter drop-shadow-[3px_3px_0_#dc2626]">
-                            Database
-                        </h2>
-                        <div className="h-1 w-32 bg-white mt-1 shadow-[2px_2px_0_rgba(220,38,38,1)]" />
+                    <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="transform -skew-x-6">
+                            <h2 className="text-3xl font-black italic text-white uppercase tracking-tighter drop-shadow-[3px_3px_0_#dc2626]">
+                                Database
+                            </h2>
+                            <div className="h-1 w-32 bg-white mt-1 shadow-[2px_2px_0_rgba(220,38,38,1)]" />
+                        </div>
+
+                        <AnimatePresence>
+                            {activeFilter === "Jogos" && (
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    whileHover={{ scale: 1.05, rotate: -2 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="flex items-center gap-2 bg-black text-white px-6 py-2 border-2 border-red-600 font-black uppercase tracking-widest hover:bg-red-600 hover:text-black hover:border-black shadow-[4px_4px_0_#fff] transition-colors"
+                                    style={{ clipPath: "polygon(5% 0, 100% 0, 95% 100%, 0% 100%)" }}
+                                >
+                                    <RefreshCw size={18} />
+                                    <span>Sincronizar com a Steam</span>
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <div className="overflow-x-auto">

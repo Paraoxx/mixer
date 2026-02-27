@@ -1,35 +1,38 @@
 export const mockData = [
     {
         id: 1,
-        title: "Hytale",
+        title: "Terraria",
         subtitle: "Jogos",
-        imageUrl: "https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=800&auto=format&fit=crop",
+        imageUrl: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/105600/header.jpg",
         acquisitionDate: "2023-11-05",
         details: {
-            plataforma: "PC, Consoles",
-            status: "Em Desenvolvimento"
+            plataforma: "PC",
+            status: "Lançado",
+            formato: "Digital"
         }
     },
     {
         id: 2,
-        title: "Minecraft",
+        title: "Stardew Valley",
         subtitle: "Jogos",
-        imageUrl: "https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=800&auto=format&fit=crop",
+        imageUrl: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/413150/header.jpg",
         acquisitionDate: "2021-08-12",
         details: {
-            plataforma: "Multiplataforma",
-            status: "Lançado"
+            plataforma: "PC, Consoles",
+            status: "Lançado",
+            formato: "Digital"
         }
     },
     {
         id: 3,
-        title: "Ryukendo",
-        subtitle: "Figures",
-        imageUrl: "https://images.unsplash.com/photo-1608889825103-eb5ed706fc64?q=80&w=800&auto=format&fit=crop",
+        title: "Hollow Knight",
+        subtitle: "Jogos",
+        imageUrl: "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/367520/header.jpg",
         acquisitionDate: "2022-03-22",
         details: {
-            escala: "1/12",
-            serie: "Madan Senki Ryukendo"
+            plataforma: "PC, Switch",
+            status: "Lançado",
+            formato: "Digital"
         }
     },
     {
@@ -118,6 +121,18 @@ export const mockData = [
         details: {
             volume: "1",
             editora: "Panini"
+        }
+    },
+    {
+        id: 12,
+        title: "Elden Ring",
+        subtitle: "Jogos",
+        imageUrl: "https://images.unsplash.com/photo-1605901309584-818e25960b8f?q=80&w=800&auto=format&fit=crop",
+        acquisitionDate: "2022-02-25",
+        details: {
+            plataforma: "PS5",
+            status: "Lançado",
+            formato: "Físico"
         }
     }
 ];
