@@ -29,7 +29,7 @@ export function Home() {
             {/* Top Title */}
             <div className="transform -skew-x-6 mb-8 pl-4 md:pl-0">
                 <h1 className="text-4xl md:text-5xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626]">
-                    MINHA LISTA DE JOGOS
+                    MINHA COLEÇÃO
                 </h1>
                 <p className="text-white bg-black px-2 mt-2 w-max text-xs uppercase font-bold tracking-widest shadow-[2px_2px_0_#dc2626]">
                     Phantom Thieves
@@ -85,8 +85,8 @@ export function Home() {
 
             {/* Horizontal Tab Navigation (Backloggd / Persona style) */}
             <nav className="w-full mt-8 pl-4 md:pl-0">
-                <div className="w-full flex overflow-x-auto pb-4 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <div className="flex gap-4 min-w-max">
+                <div className="w-full overflow-x-auto hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <div className="flex bg-slate-800/80 rounded-lg p-2 gap-2 min-w-max md:w-max">
                         {tabs.map((tab, i) => (
                             <motion.button
                                 key={tab}
@@ -94,8 +94,8 @@ export function Home() {
                                 whileHover={{ scale: 1.05, rotate: i % 2 === 0 ? 3 : -3 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`px-6 py-2 text-sm md:text-base font-black uppercase tracking-widest transition-none border-2 shrink-0 ${activeTab === tab
-                                    ? "bg-red-600 text-black border-red-600 shadow-[4px_4px_0px_#fff]"
-                                    : "bg-black text-white border-white hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_#fff]"
+                                    ? "bg-red-600 text-black border-red-600 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
+                                    : "bg-transparent text-gray-300 border-transparent hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
                                     }`}
                                 style={{
                                     clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)",

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --color-anime-bg: #0d0d12;
+  --color-anime-bg: #151822;
   --color-anime-card: rgba(25, 25, 35, 0.6);
   --color-anime-border: rgba(255, 255, 255, 0.08);
   --color-anime-accent: #f43f5e;
