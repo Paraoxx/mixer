@@ -4,7 +4,7 @@ import { Footer } from "./Footer"
 
 export function AppLayout() {
     return (
-        <div className="flex flex-col min-h-screen bg-anime-bg text-white bg-halftone font-sans">
+        <div className="flex flex-col min-h-screen font-sans">
             {/* Main Content Area */}
             <main className="flex-1 relative w-full lg:max-w-[1920px] mx-auto">
                 {/* subtle background decoration */}

@@ -16,12 +16,73 @@ export function Home() {
     const [malUrl, setMalUrl] = useState("");
     const [twitterUrl, setTwitterUrl] = useState("");
 
-    useEffect(() => {
+    // Modal states for Adding Items via Jikan API
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const fetchItems = () => {
         fetch("http://localhost:3000/items")
             .then((response) => response.json())
             .then((data) => setItems(data))
             .catch((error) => console.error("Error fetching items:", error));
+    };
+
+    useEffect(() => {
+        fetchItems();
     }, []);
+
+    const searchJikan = async () => {
+        if (!searchQuery.trim()) return;
+        setIsLoading(true);
+        try {
+            const response = await fetch(`https://api.jikan.moe/v4/manga?q=${searchQuery}&limit=5`);
+            const data = await response.json();
+            setSearchResults(data.data || []);
+        } catch (error) {
+            console.error("Error searching Jikan:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const saveItem = async (apiItem) => {
+        // Find highest existing ID to increment properly
+        const highestId = items.reduce((max, item) => {
+            const numId = parseInt(item.id, 10);
+            return !isNaN(numId) && numId > max ? numId : max;
+        }, 0);
+
+        const newItem = {
+            id: (highestId + 1).toString(),
+            title: apiItem.title,
+            imageUrl: apiItem.images.jpg.image_url,
+            category: "Mangás",
+            status: "Backlog",
+            score: null,
+            isWishlist: false,
+            // Additional API data mapping can go here later
+        };
+
+        try {
+            await fetch("http://localhost:3000/items", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(newItem),
+            });
+            // Update UI and close modal
+            fetchItems();
+            setIsModalOpen(false);
+            setSearchQuery("");
+            setSearchResults([]);
+        } catch (error) {
+            console.error("Error saving item:", error);
+            alert("Erro ao salvar item!");
+        }
+    };
 
     const reversedItems = [...items].reverse();
 
@@ -33,21 +94,46 @@ export function Home() {
         : items.filter(item => item.category === dbCategory);
 
     return (
-        <div className="w-full max-w-7xl mx-auto space-y-8 pb-12 pt-4">
-            {/* Top Title */}
-            <div className="transform -skew-x-6 mb-8 pl-4 md:pl-0">
-                <h1 className="text-4xl md:text-5xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626]">
-                    MINHA COLEÇÃO
-                </h1>
-                <p className="text-white bg-black px-2 mt-2 w-max text-xs uppercase font-bold tracking-widest shadow-[2px_2px_0_#dc2626]">
-                    Phantom Thieves
-                </p>
-            </div>
+        <div className="w-full max-w-7xl mx-auto space-y-4 pb-12 pt-0">
+            {/* Header Area Container */}
+            <header className="flex flex-col gap-6 relative z-10 w-full pl-4 md:pl-0 pr-4 md:pr-0">
+                {/* Top Row: Title & Search Actions */}
+                <div className="flex flex-col md:flex-row items-start justify-between gap-4 w-full">
+                    {/* Top Title */}
+                    <div className="transform -skew-x-6">
+                        <h1 className="text-3xl md:text-4xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626]">
+                            MINHA COLEÇÃO
+                        </h1>
+                        <p className="text-white bg-black px-2 mt-2 w-max text-[10px] sm:text-xs uppercase font-bold tracking-widest shadow-[2px_2px_0_#dc2626]">
+                            Phantom Thieves
+                        </p>
+                    </div>
 
-            {/* Profile Header */}
-            <header className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 w-full pl-4 md:pl-0 pr-4 md:pr-0">
-                {/* Left Side: Avatar & Info */}
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                    {/* Right Side: Search & Add */}
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="relative w-full md:w-64 transform -skew-x-6">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search size={16} className="text-gray-400" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Pesquisar..."
+                                className="w-full bg-black border-2 border-white/20 text-white pl-10 pr-4 py-2 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all placeholder-gray-500"
+                            />
+                        </div>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="shrink-0 flex items-center gap-2 bg-red-600 text-black px-4 py-2 font-black uppercase tracking-widest text-sm border-2 border-black hover:bg-white hover:text-red-600 hover:border-red-600 shadow-[4px_4px_0_#fff] transition-all transform -skew-x-6 active:scale-95"
+                            style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                        >
+                            <Plus size={18} strokeWidth={3} />
+                            <span>Adicionar</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Bottom Row: Profile Avatar & Info */}
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 pt-2">
                     <div className="shrink-0 relative group">
                         <img
                             src={avatarUrl}
@@ -71,28 +157,10 @@ export function Home() {
                         </button>
                     </div>
                 </div>
-
-                {/* Right Side: Search & Add */}
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="relative w-full md:w-64 transform -skew-x-6">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search size={16} className="text-gray-400" />
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Pesquisar..."
-                            className="w-full bg-black border-2 border-white/20 text-white pl-10 pr-4 py-2 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all placeholder-gray-500"
-                        />
-                    </div>
-                    <button className="shrink-0 flex items-center gap-2 bg-red-600 text-black px-4 py-2 font-black uppercase tracking-widest text-sm border-2 border-black hover:bg-white hover:text-red-600 hover:border-red-600 shadow-[4px_4px_0_#fff] transition-all transform -skew-x-6 active:scale-95" style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}>
-                        <Plus size={18} strokeWidth={3} />
-                        <span>Adicionar</span>
-                    </button>
-                </div>
             </header>
 
             {/* Horizontal Tab Navigation (Backloggd / Persona style) */}
-            <nav className="w-full mt-8 bg-slate-800/80">
+            <nav className="w-full mt-4 bg-slate-800/80">
                 <div className="w-full max-w-7xl mx-auto overflow-x-auto hide-scrollbar pl-4 md:pl-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     <div className="flex p-3 gap-3 min-w-max">
                         {tabs.map((tab, i) => (
@@ -231,8 +299,8 @@ export function Home() {
                                             key={cat}
                                             onClick={() => setDbCategory(cat)}
                                             className={`px-3 py-1 text-xs md:text-sm font-black uppercase tracking-widest transition-all border shrink-0 transform -skew-x-6 ${dbCategory === cat
-                                                    ? "bg-red-600 text-black border-red-600 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] scale-105"
-                                                    : "bg-black text-white border-white/30 hover:bg-white hover:text-black hover:border-white shadow-[2px_2px_0px_rgba(0,0,0,0.8)]"
+                                                ? "bg-red-600 text-black border-red-600 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] scale-105"
+                                                : "bg-black text-white border-white/30 hover:bg-white hover:text-black hover:border-white shadow-[2px_2px_0px_rgba(0,0,0,0.8)]"
                                                 }`}
                                         >
                                             {cat}
@@ -365,6 +433,78 @@ export function Home() {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* ADD ITEM MODAL */}
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex justify-center items-center p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        className="bg-slate-900 border-2 border-white/10 w-full max-w-2xl p-6 relative"
+                        style={{ clipPath: "polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%)" }}
+                    >
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setIsModalOpen(false)}
+                            className="absolute top-4 right-6 text-gray-400 hover:text-white font-black text-xl"
+                        >
+                            X
+                        </button>
+
+                        <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter drop-shadow-[2px_2px_0_#dc2626] mb-6 transform -skew-x-2">
+                            BUSCAR OBRA
+                        </h3>
+
+                        {/* Search Input Area */}
+                        <div className="flex gap-2 w-full transform -skew-x-2">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && searchJikan()}
+                                placeholder="Nome do mangá..."
+                                className="flex-1 bg-black border-2 border-white/20 text-white px-4 py-3 font-medium focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all"
+                            />
+                            <button
+                                onClick={searchJikan}
+                                disabled={isLoading}
+                                className="bg-red-600 text-black px-6 font-black uppercase tracking-widest text-sm border-2 border-black hover:bg-white hover:text-red-600 transition-all shadow-[4px_4px_0_#fff] disabled:opacity-50"
+                            >
+                                {isLoading ? "..." : "Buscar"}
+                            </button>
+                        </div>
+
+                        {/* Results List */}
+                        <div className="mt-8 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {searchResults.map((apiItem) => (
+                                <div key={apiItem.mal_id} className="flex gap-4 items-center bg-black/40 p-2 border border-white/10 hover:border-red-600/50 transition-colors transform -skew-x-2">
+                                    <img
+                                        src={apiItem.images.jpg.image_url}
+                                        alt={apiItem.title}
+                                        className="w-16 h-24 object-cover transform skew-x-2"
+                                    />
+                                    <div className="flex-1 transform skew-x-2">
+                                        <p className="font-bold text-white text-sm line-clamp-2">{apiItem.title}</p>
+                                        <p className="text-xs text-gray-500 mt-1">{apiItem.type} • {apiItem.status}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => saveItem(apiItem)}
+                                        className="shrink-0 bg-green-600 hover:bg-green-500 text-white px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors transform skew-x-2"
+                                        style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                                    >
+                                        Salvar na Coleção
+                                    </button>
+                                </div>
+                            ))}
+
+                            {searchResults.length === 0 && !isLoading && searchQuery && (
+                                <p className="text-center text-gray-500 italic py-4">Nenhum resultado encontrado. Digite algo para buscar.</p>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     )
 }
