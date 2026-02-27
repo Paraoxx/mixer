@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Filter, RefreshCw } from "lucide-react";
 import { ItemCard } from "../components/ItemCard";
 import { ItemDetails } from "../components/ItemDetails";
-import { mockData } from "../mockData";
 
 const filters = ["Mangás", "Figures", "Jogos", "Cartas", "Desejáveis"];
 
@@ -12,7 +11,16 @@ export function Gallery() {
     const [subFilter, setSubFilter] = useState("Todos");
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [items, setItems] = useState([]);
     const dropdownRef = useRef(null);
+
+    // Fetch items from json-server
+    useEffect(() => {
+        fetch("http://localhost:3000/items")
+            .then((response) => response.json())
+            .then((data) => setItems(data))
+            .catch((error) => console.error("Error fetching items:", error));
+    }, []);
 
     // Fechar dropdown ao clicar fora
     useEffect(() => {
@@ -25,8 +33,8 @@ export function Gallery() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const filteredItems = mockData.filter(item => {
-        const matchesMainCategory = item.subtitle === activeFilter;
+    const filteredItems = items.filter(item => {
+        const matchesMainCategory = item.category === activeFilter;
         if (!matchesMainCategory) return false;
 
         // Apply sub-filter logic only if category is 'Jogos' and subFilter is not 'Todos'
