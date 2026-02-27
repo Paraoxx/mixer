@@ -16,11 +16,17 @@ export function Home() {
     const [malUrl, setMalUrl] = useState("");
     const [twitterUrl, setTwitterUrl] = useState("");
 
+    // Live Search states for header
+    const [headerSearch, setHeaderSearch] = useState("");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+
     // Modal states for Adding Items via Jikan API
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchCategory, setSearchCategory] = useState("Mangás");
     const [searchResults, setSearchResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const fetchItems = () => {
         fetch("http://localhost:3000/items")
@@ -35,13 +41,43 @@ export function Home() {
 
     const searchJikan = async () => {
         if (!searchQuery.trim()) return;
+        setErrorMessage('');
         setIsLoading(true);
+        setSearchResults([]);
         try {
-            const response = await fetch(`https://api.jikan.moe/v4/manga?q=${searchQuery}&limit=5`);
-            const data = await response.json();
-            setSearchResults(data.data || []);
+            if (searchCategory === "Mangás") {
+                const response = await fetch(`https://api.jikan.moe/v4/manga?q=${searchQuery}&limit=5`);
+                const data = await response.json();
+                const normalized = (data.data || []).map(item => ({
+                    id: item.mal_id.toString(),
+                    title: item.title,
+                    image: item.images.jpg.image_url,
+                    subtitle: `${item.type} • ${item.status}`
+                }));
+                setSearchResults(normalized);
+            } else {
+                // Fetch Figures via our new custom local Express proxy (which parses MFC XML)
+                try {
+                    const response = await fetch(`http://localhost:3001/api/figures/search?q=${encodeURIComponent(searchQuery)}`);
+                    if (!response.ok) throw new Error("Backend falhou");
+
+                    const data = await response.json();
+
+                    // Add subtitle if missing from proxy
+                    const formattedDetails = (data || []).map(item => ({
+                        ...item,
+                        subtitle: item.subtitle || `Fabricante: ${item.company}`
+                    }));
+
+                    setSearchResults(formattedDetails);
+                } catch (error) {
+                    console.error("Erro na busca de figures (Proxy Local):", error);
+                    setErrorMessage('Verifique se o proxy está rodando na porta 3001');
+                    setSearchResults([]);
+                }
+            }
         } catch (error) {
-            console.error("Error searching Jikan:", error);
+            console.error("Error searching:", error);
         } finally {
             setIsLoading(false);
         }
@@ -57,13 +93,18 @@ export function Home() {
         const newItem = {
             id: (highestId + 1).toString(),
             title: apiItem.title,
-            imageUrl: apiItem.images.jpg.image_url,
-            category: "Mangás",
+            imageUrl: apiItem.image,
+            category: searchCategory,
             status: "Backlog",
             score: null,
             isWishlist: false,
-            // Additional API data mapping can go here later
         };
+
+        if (apiItem.company) {
+            newItem.details = {
+                fabricante: apiItem.company
+            };
+        }
 
         try {
             await fetch("http://localhost:3000/items", {
@@ -93,6 +134,10 @@ export function Home() {
         ? items
         : items.filter(item => item.category === dbCategory);
 
+    const filteredHeaderItems = items.filter(item =>
+        item.title.toLowerCase().includes(headerSearch.toLowerCase())
+    );
+
     return (
         <div className="w-full max-w-7xl mx-auto space-y-4 pb-12 pt-0">
             {/* Header Area Container */}
@@ -110,16 +155,43 @@ export function Home() {
                     </div>
 
                     {/* Right Side: Search & Add */}
-                    <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="flex items-center gap-4 w-full md:w-auto relative z-50">
                         <div className="relative w-full md:w-64 transform -skew-x-6">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                                 <Search size={16} className="text-gray-400" />
                             </div>
                             <input
                                 type="text"
+                                value={headerSearch}
+                                onChange={(e) => setHeaderSearch(e.target.value)}
+                                onFocus={() => setIsSearchFocused(true)}
+                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                                 placeholder="Pesquisar..."
-                                className="w-full bg-black border-2 border-white/20 text-white pl-10 pr-4 py-2 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all placeholder-gray-500"
+                                className="w-full bg-black border-2 border-white/20 text-white pl-10 pr-4 py-2 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all placeholder-gray-500 relative z-10"
                             />
+
+                            {/* Live Search Dropdown */}
+                            {isSearchFocused && headerSearch.length > 0 && (
+                                <div className="absolute top-full right-0 w-full mt-2 bg-slate-800 border-2 border-slate-700 shadow-[4px_4px_0_#dc2626] z-50 overflow-hidden flex flex-col max-h-96 overflow-y-auto" style={{ clipPath: "polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%)" }}>
+                                    {filteredHeaderItems.length > 0 ? (
+                                        filteredHeaderItems.map((item) => (
+                                            <div key={`search-${item.id}`} className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0 transform skew-x-6" onClick={() => {
+                                                setHeaderSearch(""); // Clear on select (could navigate to details later)
+                                            }}>
+                                                <img src={item.imageUrl} alt={item.title} className="w-10 h-10 object-cover border border-white/20 shrink-0" style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }} />
+                                                <div className="flex-1 truncate">
+                                                    <p className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate">{item.title}</p>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.category}</p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="p-4 text-center transform skew-x-6">
+                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">Nenhum item encontrado na coleção.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => setIsModalOpen(true)}
@@ -447,7 +519,7 @@ export function Home() {
                         {/* Close Button */}
                         <button
                             onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-6 text-gray-400 hover:text-white font-black text-xl"
+                            className="absolute top-4 right-6 text-gray-400 hover:text-white font-black text-xl cursor-pointer z-50"
                         >
                             X
                         </button>
@@ -455,6 +527,25 @@ export function Home() {
                         <h3 className="text-2xl font-black italic text-white uppercase tracking-tighter drop-shadow-[2px_2px_0_#dc2626] mb-6 transform -skew-x-2">
                             BUSCAR OBRA
                         </h3>
+
+                        {/* Category Selector */}
+                        <div className="flex gap-2 mb-4 w-full">
+                            {['Mangás', 'Figures'].map(cat => (
+                                <button
+                                    key={`modal-cat-${cat}`}
+                                    onClick={() => {
+                                        setSearchCategory(cat);
+                                        setSearchResults([]);
+                                    }}
+                                    className={`px-4 py-1 text-xs md:text-sm font-black uppercase tracking-widest transition-all border transform -skew-x-6 ${searchCategory === cat
+                                        ? "bg-red-600 text-black border-red-600 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] scale-105 z-10"
+                                        : "bg-black text-white border-white/30 hover:bg-white hover:text-black hover:border-white shadow-[2px_2px_0px_rgba(0,0,0,0.8)]"
+                                        }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
 
                         {/* Search Input Area */}
                         <div className="flex gap-2 w-full transform -skew-x-2">
@@ -477,29 +568,39 @@ export function Home() {
 
                         {/* Results List */}
                         <div className="mt-8 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                            {searchResults.map((apiItem) => (
-                                <div key={apiItem.mal_id} className="flex gap-4 items-center bg-black/40 p-2 border border-white/10 hover:border-red-600/50 transition-colors transform -skew-x-2">
-                                    <img
-                                        src={apiItem.images.jpg.image_url}
-                                        alt={apiItem.title}
-                                        className="w-16 h-24 object-cover transform skew-x-2"
-                                    />
-                                    <div className="flex-1 transform skew-x-2">
-                                        <p className="font-bold text-white text-sm line-clamp-2">{apiItem.title}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{apiItem.type} • {apiItem.status}</p>
+                            {searchResults.map((item) => {
+                                return (
+                                    <div key={item.id} className="flex gap-4 items-center bg-black/40 p-2 border border-white/10 hover:border-red-600/50 transition-colors transform -skew-x-2">
+                                        <img
+                                            src={item.image}
+                                            alt={item.title}
+                                            className="w-16 h-24 object-cover transform skew-x-2"
+                                        />
+                                        <div className="flex-1 transform skew-x-2">
+                                            <p className="font-bold text-white text-sm line-clamp-2">{item.title}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => saveItem(item)}
+                                            className="shrink-0 bg-green-600 hover:bg-green-500 text-white px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors transform skew-x-2 cursor-pointer"
+                                            style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                                        >
+                                            Salvar na Coleção
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => saveItem(apiItem)}
-                                        className="shrink-0 bg-green-600 hover:bg-green-500 text-white px-3 py-2 text-xs font-bold uppercase tracking-widest transition-colors transform skew-x-2"
-                                        style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
-                                    >
-                                        Salvar na Coleção
-                                    </button>
-                                </div>
-                            ))}
+                                );
+                            })}
 
-                            {searchResults.length === 0 && !isLoading && searchQuery && (
-                                <p className="text-center text-gray-500 italic py-4">Nenhum resultado encontrado. Digite algo para buscar.</p>
+                            {searchResults.length === 0 && !isLoading && !errorMessage && searchQuery && (
+                                <p className="text-center text-gray-500 italic py-4">Nenhum resultado oficial encontrado para esta busca.</p>
+                            )}
+
+                            {isLoading && (
+                                <p className="text-center text-white font-bold italic py-4 animate-pulse">Buscando informações oficiais...</p>
+                            )}
+
+                            {errorMessage && (
+                                <p className="text-red-500 text-sm mt-4 text-center font-bold px-4">{errorMessage}</p>
                             )}
                         </div>
                     </motion.div>
