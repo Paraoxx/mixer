@@ -5,7 +5,10 @@ import { Plus, Search } from "lucide-react"
 
 export function Home() {
     const [items, setItems] = useState([]);
-    const [activeTab, setActiveTab] = useState("Explore");
+    const [activeTab, setActiveTab] = useState("Database");
+
+    // Database specific state
+    const [dbCategory, setDbCategory] = useState("Todos");
 
     // Form states for Settings tab
     const [nickname, setNickname] = useState("Pabllo");
@@ -22,7 +25,12 @@ export function Home() {
 
     const reversedItems = [...items].reverse();
 
-    const tabs = ["Explore", "Collection", "Settings"];
+    const tabs = ["Explore", "Collection", "Database", "Settings"];
+    const dbCategories = ["Todos", "Mangás", "Figures", "Jogos", "Cartas"];
+
+    const filteredDbItems = dbCategory === "Todos"
+        ? items
+        : items.filter(item => item.category === dbCategory);
 
     return (
         <div className="w-full max-w-7xl mx-auto space-y-8 pb-12 pt-4">
@@ -84,9 +92,9 @@ export function Home() {
             </header>
 
             {/* Horizontal Tab Navigation (Backloggd / Persona style) */}
-            <nav className="w-full mt-8 pl-4 md:pl-0">
-                <div className="w-full overflow-x-auto hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <div className="flex bg-slate-800/80 rounded-lg p-2 gap-2 min-w-max md:w-max">
+            <nav className="w-full mt-8 bg-slate-800/80">
+                <div className="w-full max-w-7xl mx-auto overflow-x-auto hide-scrollbar pl-4 md:pl-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <div className="flex p-3 gap-3 min-w-max">
                         {tabs.map((tab, i) => (
                             <motion.button
                                 key={tab}
@@ -95,7 +103,7 @@ export function Home() {
                                 whileTap={{ scale: 0.95 }}
                                 className={`px-6 py-2 text-sm md:text-base font-black uppercase tracking-widest transition-none border-2 shrink-0 ${activeTab === tab
                                     ? "bg-red-600 text-black border-red-600 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
-                                    : "bg-transparent text-gray-300 border-transparent hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
+                                    : "bg-black text-white border-white hover:bg-red-600 hover:text-black hover:border-black hover:shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
                                     }`}
                                 style={{
                                     clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)",
@@ -195,6 +203,92 @@ export function Home() {
                             {/* Reusing existing Gallery component but passing it down directly */}
                             {/* We just wrap it so it renders inside the tab area */}
                             <Gallery />
+                        </motion.section>
+                    )}
+
+                    {/* DATABASE TAB (Dense Catalog) */}
+                    {activeTab === "Database" && (
+                        <motion.section
+                            key="database"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-8 pt-4"
+                        >
+                            {/* Database Sub-navigation */}
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pr-4 md:pr-0">
+                                <div className="transform -skew-x-2">
+                                    <h2 className="text-2xl md:text-3xl font-black italic text-white uppercase tracking-tighter drop-shadow-[2px_2px_0_#dc2626]">
+                                        Catálogo Oficial
+                                    </h2>
+                                    <div className="h-1 w-24 bg-white mt-1 shadow-[2px_2px_0_rgba(220,38,38,1)]" />
+                                </div>
+
+                                <div className="flex gap-2 w-full md:w-auto overflow-x-auto hide-scrollbar pb-2 md:pb-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                    {dbCategories.map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setDbCategory(cat)}
+                                            className={`px-3 py-1 text-xs md:text-sm font-black uppercase tracking-widest transition-all border shrink-0 transform -skew-x-6 ${dbCategory === cat
+                                                    ? "bg-red-600 text-black border-red-600 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] scale-105"
+                                                    : "bg-black text-white border-white/30 hover:bg-white hover:text-black hover:border-white shadow-[2px_2px_0px_rgba(0,0,0,0.8)]"
+                                                }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Dense Grid */}
+                            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 md:gap-3 pr-4 md:pr-0">
+                                {filteredDbItems.map((item, index) => {
+                                    const getBorderColor = (category) => {
+                                        switch (category) {
+                                            case 'Jogos': return 'border-blue-500';
+                                            case 'Figures': return 'border-purple-500';
+                                            case 'Cartas': return 'border-yellow-500';
+                                            case 'Mangás': return 'border-green-500';
+                                            default: return 'border-gray-500';
+                                        }
+                                    };
+
+                                    return (
+                                        <motion.div
+                                            key={`db-${item.id}`}
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ duration: 0.2, delay: (index % 10) * 0.02 }}
+                                            className="group relative flex flex-col gap-1 cursor-pointer"
+                                        >
+                                            <div
+                                                className="relative aspect-[3/4] overflow-hidden bg-black shadow-[2px_2px_0_rgba(0,0,0,0.8)]"
+                                                style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                                            >
+                                                <div className={`absolute inset-0 border-2 ${getBorderColor(item.category)} opacity-30 transition-colors z-10 pointer-events-none group-hover:border-red-600 group-hover:border-4 group-hover:opacity-100`} />
+
+                                                <img
+                                                    src={item.imageUrl}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 group-hover:brightness-75"
+                                                    loading="lazy"
+                                                />
+
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                                                    <div className="bg-red-600 text-black p-1.5 rounded-full transform rotate-12 group-hover:rotate-0 transition-transform shadow-[1px_1px_0_#fff]">
+                                                        <Plus size={16} strokeWidth={4} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] sm:text-xs font-bold text-gray-400 group-hover:text-white truncate transition-colors uppercase tracking-tight text-center px-1">
+                                                {item.title}
+                                            </p>
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
+
                         </motion.section>
                     )}
 
