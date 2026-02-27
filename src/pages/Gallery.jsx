@@ -47,7 +47,7 @@ export function Gallery() {
     });
 
     return (
-        <div className="p-8 max-w-7xl mx-auto min-h-screen">
+        <div className="p-4 md:p-8 w-full min-h-screen">
             <div className="flex flex-col gap-8">
                 {/* Header & Filters */}
                 <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
