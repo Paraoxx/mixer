@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev:frontend": "vite",
-    "dev:backend": "node backend/server.js",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:backend": "npx json-server --watch backend/db.json --port 3000",
+    "dev:proxy": "node proxy-server.js",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:proxy\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
