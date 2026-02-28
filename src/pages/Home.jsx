@@ -58,10 +58,12 @@ export function Home() {
             } else {
                 // Fetch Figures via our new custom local Express proxy (which parses MFC XML)
                 try {
-                    const response = await fetch(`http://localhost:3001/api/figures/search?q=${encodeURIComponent(searchQuery)}`);
-                    if (!response.ok) throw new Error("Backend falhou");
-
+                    const response = await fetch("http://localhost:3001/api/figures/search?q=" + encodeURIComponent(searchQuery));
                     const data = await response.json();
+
+                    if (!response.ok || data.error) {
+                        throw new Error(data.error || "Erro desconhecido ao buscar figures.");
+                    }
 
                     // Add subtitle if missing from proxy
                     const formattedDetails = (data || []).map(item => ({
@@ -72,7 +74,7 @@ export function Home() {
                     setSearchResults(formattedDetails);
                 } catch (error) {
                     console.error("Erro na busca de figures (Proxy Local):", error);
-                    setErrorMessage('Verifique se o proxy está rodando na porta 3001');
+                    setErrorMessage(error.message);
                     setSearchResults([]);
                 }
             }
