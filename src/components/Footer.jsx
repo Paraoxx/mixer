@@ -1,6 +1,4 @@
-import { Settings } from "lucide-react";
-
-export function Footer({ onAdminClick }) {
+export function Footer() {
     return (
         <footer className="w-full mt-12 mb-8 flex justify-center z-10 relative">
             <div
@@ -13,13 +11,6 @@ export function Footer({ onAdminClick }) {
                     </p>
                     <div className="h-1 w-16 bg-red-600 mt-2 shadow-[1px_1px_0_#fff]" />
                 </div>
-
-                <button
-                    onClick={onAdminClick}
-                    className="absolute bottom-2 right-2 text-gray-500 hover:text-red-500 transition-colors"
-                >
-                    <Settings size={16} />
-                </button>
             </div>
         </footer>
     );

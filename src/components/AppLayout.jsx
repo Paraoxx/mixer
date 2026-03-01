@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Footer } from "./Footer"
 
-export function AppLayout({ onAdminClick }) {
+export function AppLayout() {
     return (
         <div className="flex flex-col min-h-screen font-sans">
             {/* Main Content Area */}
@@ -15,7 +15,7 @@ export function AppLayout({ onAdminClick }) {
                 </div>
             </main>
 
-            <Footer onAdminClick={onAdminClick} />
+            <Footer />
         </div>
     )
 }

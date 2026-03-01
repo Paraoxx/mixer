@@ -31,7 +31,11 @@ export function Home() {
     // State for Previewing Item Details (Ficha Técnica) before adding
     const [selectedDetailsItem, setSelectedDetailsItem] = useState(null);
     const fetchItems = () => {
-        fetch("http://localhost:3000/my_collection")
+        const url = dbCategory === "Figures"
+            ? "http://localhost:3000/global_figures"
+            : "http://localhost:3000/my_collection";
+
+        fetch(url)
             .then((response) => response.json())
             .then((data) => setItems(data))
             .catch((error) => console.error("Error fetching items:", error));
@@ -39,7 +43,7 @@ export function Home() {
 
     useEffect(() => {
         fetchItems();
-    }, []);
+    }, [dbCategory]);
 
     const searchJikan = async () => {
         if (!searchQuery.trim()) return;
@@ -315,7 +319,7 @@ export function Home() {
                                             <div className={`absolute inset-0 border-4 ${getBorderColor(item.category)} opacity-40 transition-colors z-10 pointer-events-none group-hover:border-red-600 group-hover:opacity-100`} />
 
                                             <img
-                                                src={item.imageUrl}
+                                                src={item.images && item.images.length > 0 ? item.images[0] : (item.imageUrl || item.image)}
                                                 alt={item.title}
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 group-hover:brightness-50"
                                                 loading="lazy"
@@ -426,7 +430,7 @@ export function Home() {
                                                     <div className={`absolute inset-0 border-2 ${getBorderColor(item.category)} opacity-30 transition-colors z-10 pointer-events-none group-hover:border-red-600 group-hover:border-4 group-hover:opacity-100`} />
 
                                                     <img
-                                                        src={item.imageUrl}
+                                                        src={item.images && item.images.length > 0 ? item.images[0] : (item.imageUrl || item.image)}
                                                         alt={item.title}
                                                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 group-hover:brightness-75"
                                                         loading="lazy"
