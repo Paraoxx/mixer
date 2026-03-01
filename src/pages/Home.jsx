@@ -19,6 +19,8 @@ export function Home() {
     // Live Search states for header
     const [headerSearch, setHeaderSearch] = useState("");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const [headerSearchResults, setHeaderSearchResults] = useState([]);
+    const [isHeaderSearchLoading, setIsHeaderSearchLoading] = useState(false);
 
     // Modal states for Adding Items via Jikan API
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,11 +33,7 @@ export function Home() {
     // State for Previewing Item Details (Ficha Técnica) before adding
     const [selectedDetailsItem, setSelectedDetailsItem] = useState(null);
     const fetchItems = () => {
-        const url = dbCategory === "Figures"
-            ? "http://localhost:3000/global_figures"
-            : "http://localhost:3000/my_collection";
-
-        fetch(url)
+        fetch("http://localhost:3000/my_collection")
             .then((response) => response.json())
             .then((data) => setItems(data))
             .catch((error) => console.error("Error fetching items:", error));
@@ -43,51 +41,107 @@ export function Home() {
 
     useEffect(() => {
         fetchItems();
-    }, [dbCategory]);
+    }, []);
 
-    const searchJikan = async () => {
-        if (!searchQuery.trim()) return;
-        setErrorMessage('');
-        setIsLoading(true);
-        setSearchResults([]);
-        try {
-            if (searchCategory === "Mangás") {
-                const response = await fetch(`https://api.jikan.moe/v4/manga?q=${searchQuery}&limit=5`);
-                const data = await response.json();
-                const normalized = (data.data || []).map(item => ({
-                    id: item.mal_id.toString(),
-                    title: item.title,
-                    image: item.images.jpg.image_url,
-                    subtitle: `${item.type} • ${item.status}`
-                }));
-                setSearchResults(normalized);
-            } else {
-                // Fetch Figures from global catalog
+    // Add Modal Search is now driven by an explicit button click.
+
+    // Live Header Search debounce effect
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(async () => {
+            if (headerSearch.trim().length > 0) {
+                setIsHeaderSearchLoading(true);
                 try {
-                    const response = await fetch(`http://localhost:3000/global_figures?title_like=${encodeURIComponent(searchQuery)}`);
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error("Erro ao buscar do catálogo global.");
+                    let targetCategory = dbCategory;
+                    if (targetCategory === "Todos" || !["Mangás", "Figures"].includes(targetCategory)) {
+                        targetCategory = "Mangás";
                     }
 
-                    const formattedDetails = (data || []).map(item => ({
-                        ...item,
-                        image: (item.images && item.images.length > 0) ? item.images[0] : (item.imageUrl || item.image || item.images),
-                        subtitle: `Fabricante: ${item.company || (item.details && item.details.fabricante) || 'Desconhecido'}`
-                    }));
-
-                    setSearchResults(formattedDetails);
+                    if (targetCategory === "Mangás") {
+                        const response = await fetch(`https://api.jikan.moe/v4/manga?q=${headerSearch}&limit=5`);
+                        const data = await response.json();
+                        const formattedManga = (data.data || []).map(m => ({
+                            ...m,
+                            id: m.mal_id.toString(),
+                            displayTitle: m.title,
+                            displayImage: m.images?.jpg?.image_url,
+                            subtitle: `${m.type} • ${m.status}`,
+                            source: 'api',
+                            category: 'Mangás'
+                        }));
+                        setHeaderSearchResults(formattedManga);
+                    } else if (targetCategory === "Figures") {
+                        const response = await fetch(`http://localhost:3000/global_figures?q=${encodeURIComponent(headerSearch)}`);
+                        if (!response.ok) throw new Error('Erro na API');
+                        const data = await response.json();
+                        const formattedFigure = data.map(f => ({
+                            ...f,
+                            displayTitle: f.title || f.name || 'Sem Título',
+                            displayImage: (f.images && f.images.length > 0) ? f.images[0] : (f.image || ''),
+                            source: 'global_db',
+                            category: 'Figures'
+                        }));
+                        setHeaderSearchResults(formattedFigure);
+                    } else {
+                        setHeaderSearchResults([]);
+                    }
                 } catch (error) {
-                    console.error("Erro na busca de figures (Catálogo Global):", error);
-                    setErrorMessage(error.message);
-                    setSearchResults([]);
+                    console.error("Erro busca header:", error);
+                    setHeaderSearchResults([]);
+                } finally {
+                    setIsHeaderSearchLoading(false);
                 }
+            } else {
+                setHeaderSearchResults([]);
             }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [headerSearch, dbCategory]);
+
+    const handleSearchClick = async () => {
+        if (!searchQuery.trim()) return;
+
+        try {
+            console.log(`🚀 Botão clicado! Buscando na aba ${searchCategory} por: ${searchQuery}`);
+
+            let url = '';
+            if (searchCategory === 'Figures') {
+                url = `http://localhost:3000/global_figures?q=${encodeURIComponent(searchQuery)}`;
+            } else if (searchCategory === 'Mangás') {
+                url = `https://api.jikan.moe/v4/manga?q=${encodeURIComponent(searchQuery)}&limit=5`;
+            }
+
+            console.log(`🌐 Fazendo fetch na URL: ${url}`);
+            const response = await fetch(url);
+
+            if (!response.ok) throw new Error('Erro na requisição');
+
+            const data = await response.json();
+            console.log("📦 Dados brutos recebidos:", data);
+
+            let formattedData = [];
+            if (searchCategory === 'Figures') {
+                formattedData = data.map(item => ({
+                    ...item,
+                    displayTitle: item.title || item.name || 'Sem Título',
+                    displayImage: (item.images && item.images.length > 0) ? item.images[0] : (item.image || '')
+                }));
+            } else if (searchCategory === 'Mangás') {
+                // A API Jikan retorna os dados dentro de um array 'data'
+                formattedData = (data.data || []).map(m => ({
+                    id: m.mal_id.toString(), // ensure ID is string for react keys
+                    displayTitle: m.title,
+                    displayImage: m.images?.jpg?.image_url || '',
+                    subtitle: `${m.type} • ${m.status}` // keeping consistent for UI
+                }));
+            }
+
+            console.log("✅ Dados formatados para a tela:", formattedData);
+            setSearchResults(formattedData);
+
         } catch (error) {
-            console.error("Error searching:", error);
-        } finally {
-            setIsLoading(false);
+            console.error("❌ Erro ao buscar:", error);
+            setSearchResults([]);
         }
     };
 
@@ -100,18 +154,18 @@ export function Home() {
 
         const newItem = {
             id: (highestId + 1).toString(),
-            title: apiItem.title,
-            imageUrl: apiItem.image,
-            images: apiItem.images || [apiItem.image],
-            category: searchCategory,
+            title: apiItem.displayTitle || apiItem.title,
+            imageUrl: apiItem.displayImage || apiItem.image || apiItem.imageUrl,
+            images: apiItem.images || [apiItem.displayImage || apiItem.image || apiItem.imageUrl],
+            category: apiItem.category || searchCategory,
             status: "Backlog",
             score: null,
             isWishlist: false,
         };
 
-        if (apiItem.company) {
+        if (apiItem.company || (apiItem.details && apiItem.details.fabricante)) {
             newItem.details = {
-                fabricante: apiItem.company
+                fabricante: apiItem.company || (apiItem.details && apiItem.details.fabricante)
             };
         }
 
@@ -143,10 +197,6 @@ export function Home() {
     const filteredDbItems = dbCategory === "Todos"
         ? items
         : items.filter(item => item.category === dbCategory);
-
-    const filteredHeaderItems = items.filter(item =>
-        item.title.toLowerCase().includes(headerSearch.toLowerCase())
-    );
 
     return (
         <div className="w-full max-w-7xl mx-auto space-y-4 pb-12 pt-0">
@@ -183,23 +233,26 @@ export function Home() {
                             {/* Live Search Dropdown */}
                             {isSearchFocused && headerSearch.length > 0 && (
                                 <div className="absolute top-full right-0 w-full mt-2 bg-slate-800 border-2 border-slate-700 shadow-[4px_4px_0_#dc2626] z-50 overflow-hidden flex flex-col max-h-96 overflow-y-auto" style={{ clipPath: "polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%)" }}>
-                                    {filteredHeaderItems.length > 0 ? (
-                                        filteredHeaderItems.map((item) => (
-                                            <div key={`search-${item.id}`} className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0 transform skew-x-6" onClick={() => {
+                                    {headerSearchResults.length > 0 ? (
+                                        headerSearchResults.map((item) => (
+                                            <div key={`search-${item.id}`} className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0 transform skew-x-6" onMouseDown={(e) => {
+                                                e.preventDefault(); // Prevents blur
                                                 setHeaderSearch(""); // Clear search string
                                                 setIsSearchFocused(false);
                                                 setSelectedDetailsItem(item); // Open Ficha Técnica
                                             }}>
-                                                <img src={item.imageUrl || item.image} alt={item.title} className="w-10 h-10 object-cover border border-white/20 shrink-0" style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }} />
+                                                <img src={item.displayImage} alt={item.displayTitle} className="w-10 h-10 object-cover border border-white/20 shrink-0" style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }} />
                                                 <div className="flex-1 truncate">
-                                                    <p className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate">{item.title}</p>
+                                                    <p className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate">{item.displayTitle}</p>
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.category}</p>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="p-4 text-center transform skew-x-6">
-                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">Nenhum item encontrado na coleção.</p>
+                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
+                                                {isHeaderSearchLoading ? "BUSCANDO..." : "NENHUM ITEM ENCONTRADO NO CATÁLOGO GLOBAL."}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
@@ -577,12 +630,12 @@ export function Home() {
                                     type="text"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && searchJikan()}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
                                     placeholder={searchCategory === "Mangás" ? "Nome do mangá..." : "Pesquisar no catálogo oficial..."}
                                     className="flex-1 bg-black border-2 border-white/20 text-white px-4 py-3 font-medium focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all"
                                 />
                                 <button
-                                    onClick={searchJikan}
+                                    onClick={handleSearchClick}
                                     disabled={isLoading}
                                     className="bg-red-600 text-black px-6 font-black uppercase tracking-widest text-sm border-2 border-black hover:bg-white hover:text-red-600 transition-all shadow-[4px_4px_0_#fff] disabled:opacity-50"
                                 >
@@ -596,12 +649,12 @@ export function Home() {
                                     return (
                                         <div key={item.id} className="flex gap-4 items-center bg-black/40 p-2 border border-white/10 hover:border-red-600/50 transition-colors transform -skew-x-2">
                                             <img
-                                                src={item.image || item.imageUrl}
-                                                alt={item.title}
+                                                src={item.displayImage || item.image || item.imageUrl}
+                                                alt={item.displayTitle || item.title}
                                                 className="w-16 h-24 object-cover transform skew-x-2"
                                             />
                                             <div className="flex-1 transform skew-x-2">
-                                                <p className="font-bold text-white text-sm line-clamp-2">{item.title}</p>
+                                                <p className="font-bold text-white text-sm line-clamp-2">{item.displayTitle || item.title}</p>
                                                 <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
                                             </div>
                                             <button
@@ -616,7 +669,11 @@ export function Home() {
                                 })}
 
                                 {searchResults.length === 0 && !isLoading && !errorMessage && searchQuery && (
-                                    <p className="text-center text-gray-500 italic py-4">Nenhum resultado oficial encontrado para esta busca.</p>
+                                    <p className="text-center text-gray-500 font-bold uppercase tracking-widest py-4">
+                                        {searchCategory === 'Figures'
+                                            ? "NENHUM ITEM ENCONTRADO NO CATÁLOGO GLOBAL."
+                                            : "Nenhum resultado encontrado."}
+                                    </p>
                                 )}
 
                                 {isLoading && (
@@ -646,14 +703,14 @@ export function Home() {
 
                         <div className="w-full md:w-1/2 flex justify-center">
                             <img
-                                src={selectedDetailsItem.images && selectedDetailsItem.images.length > 0 ? selectedDetailsItem.images[0] : (selectedDetailsItem.imageUrl || selectedDetailsItem.image)}
-                                alt={selectedDetailsItem.title}
+                                src={selectedDetailsItem.displayImage || (selectedDetailsItem.images && selectedDetailsItem.images.length > 0 ? selectedDetailsItem.images[0] : (selectedDetailsItem.imageUrl || selectedDetailsItem.image))}
+                                alt={selectedDetailsItem.displayTitle || selectedDetailsItem.title}
                                 className="w-full h-full object-contain max-h-96"
                             />
                         </div>
 
                         <div className="w-full md:w-1/2 md:pl-8 flex flex-col gap-4 mt-6 md:mt-0">
-                            <h2 className="text-3xl font-black text-white">{selectedDetailsItem.title}</h2>
+                            <h2 className="text-3xl font-black text-white">{selectedDetailsItem.displayTitle || selectedDetailsItem.title}</h2>
 
                             <div>
                                 <span className="text-gray-400 font-bold block">Obra:</span>
