@@ -1,21 +1,39 @@
 {
   "global_figures": [
     {
-      "id": "1772353372081",
+      "id": "1772353795272",
       "title": "Steins;Gate - Makise Kurisu - 1/8 (Good Smile Company)",
       "series": "Steins;Gate",
       "character": "Makise Kurisu",
-      "company": "Good Smile Company ",
-      "dimensions": "H=210mm (8.19in, 1:1=1.68m)",
+      "company": "Good Smile Company",
+      "dimensions": "1/8  H=210mm (8.19in, 1:1=1.68m)",
       "images": [
         "https://static.myfigurecollection.net/upload/items/2/78589-bb7f9.jpg",
         "https://static.myfigurecollection.net/upload/pictures/2011/09/15/276344.jpeg"
       ],
       "category": "Figures",
       "details": {
-        "fabricante": "Good Smile Company ",
-        "escala": "H=210mm (8.19in, 1:1=1.68m)",
+        "fabricante": "Good Smile Company",
+        "escala": "1/8  H=210mm (8.19in, 1:1=1.68m)",
         "serie": "Steins;Gate"
+      }
+    },
+    {
+      "id": "1772389563516",
+      "title": "No Game No Life - Shiro - 1/7 (Kotobukiya)",
+      "series": "No Game No Life",
+      "character": "Shiro",
+      "company": "Kotobukiya ",
+      "dimensions": "1/7  H=155mm (6.05in, 1:1=1.09m)",
+      "images": [
+        "https://static.myfigurecollection.net/upload/items/2/218050-e77c9.jpg",
+        "https://static.myfigurecollection.net/upload/pictures/2014/10/24/1127790.jpeg"
+      ],
+      "category": "Figures",
+      "details": {
+        "fabricante": "Kotobukiya ",
+        "escala": "1/7  H=155mm (6.05in, 1:1=1.09m)",
+        "serie": "No Game No Life"
       }
     }
   ],
@@ -164,6 +182,32 @@
       "details": {
         "fabricante": "Konami Amusement "
       }
+    },
+    {
+      "id": "16",
+      "title": "Suiton Kikou",
+      "imageUrl": "https://cdn.myanimelist.net/images/manga/3/223777.jpg",
+      "images": [
+        "https://cdn.myanimelist.net/images/manga/3/223777.jpg"
+      ],
+      "category": "Mangás",
+      "status": "Backlog",
+      "score": null,
+      "isWishlist": false
+    },
+    {
+      "id": "17",
+      "title": "Shiro's Dungeon",
+      "imageUrl": "https://media.rawg.io/media/screenshots/75b/75b54d6c01e389fafa2fe617f4369f7d.jpg",
+      "images": [
+        "https://media.rawg.io/media/screenshots/75b/75b54d6c01e389fafa2fe617f4369f7d.jpg"
+      ],
+      "category": "Jogos",
+      "status": "Backlog",
+      "score": null,
+      "isWishlist": false,
+      "format": "Digital",
+      "dateAdded": "2026-03-01T18:27:21.010Z"
     }
   ],
   "$schema": "./node_modules/json-server/schema.json"

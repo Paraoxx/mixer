@@ -16,7 +16,7 @@ export function Gallery() {
 
     // Fetch items from json-server
     useEffect(() => {
-        fetch("http://localhost:3000/items")
+        fetch("http://localhost:3000/my_collection")
             .then((response) => response.json())
             .then((data) => setItems(data))
             .catch((error) => console.error("Error fetching items:", error));

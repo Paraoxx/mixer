@@ -11,16 +11,20 @@ export function Home() {
     const [dbCategory, setDbCategory] = useState("Todos");
 
     // Form states for Settings tab
-    const [nickname, setNickname] = useState("Pabllo");
+    const [nickname, setNickname] = useState("Colecionador");
     const [avatarUrl, setAvatarUrl] = useState("https://i.pinimg.com/736x/8d/ad/f4/8dadf490b4adbd52a1ba2e33682be6c6.jpg");
     const [malUrl, setMalUrl] = useState("");
     const [twitterUrl, setTwitterUrl] = useState("");
 
-    // Live Search states for header
+    // Global Search states
     const [headerSearch, setHeaderSearch] = useState("");
-    const [isSearchFocused, setIsSearchFocused] = useState(false);
-    const [headerSearchResults, setHeaderSearchResults] = useState([]);
-    const [isHeaderSearchLoading, setIsHeaderSearchLoading] = useState(false);
+    const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+    const [mangaResults, setMangaResults] = useState([]);
+    const [figureResults, setFigureResults] = useState([]);
+    const [gameResults, setGameResults] = useState([]);
+    const [isGlobalSearchLoading, setIsGlobalSearchLoading] = useState(false);
+    const [searchResultTab, setSearchResultTab] = useState('Mangás'); // Tabs: 'Mangás', 'Figures', 'Jogos'
+    const [gameFormat, setGameFormat] = useState('Físico');
 
     // Modal states for Adding Items via Jikan API
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,58 +49,103 @@ export function Home() {
 
     // Add Modal Search is now driven by an explicit button click.
 
-    // Live Header Search debounce effect
+    // Global Search explicitly triggered by user
     useEffect(() => {
-        const delayDebounceFn = setTimeout(async () => {
-            if (headerSearch.trim().length > 0) {
-                setIsHeaderSearchLoading(true);
-                try {
-                    let targetCategory = dbCategory;
-                    if (targetCategory === "Todos" || !["Mangás", "Figures"].includes(targetCategory)) {
-                        targetCategory = "Mangás";
-                    }
-
-                    if (targetCategory === "Mangás") {
-                        const response = await fetch(`https://api.jikan.moe/v4/manga?q=${headerSearch}&limit=5`);
-                        const data = await response.json();
-                        const formattedManga = (data.data || []).map(m => ({
-                            ...m,
-                            id: m.mal_id.toString(),
-                            displayTitle: m.title,
-                            displayImage: m.images?.jpg?.image_url,
-                            subtitle: `${m.type} • ${m.status}`,
-                            source: 'api',
-                            category: 'Mangás'
-                        }));
-                        setHeaderSearchResults(formattedManga);
-                    } else if (targetCategory === "Figures") {
-                        const response = await fetch(`http://localhost:3000/global_figures?q=${encodeURIComponent(headerSearch)}`);
-                        if (!response.ok) throw new Error('Erro na API');
-                        const data = await response.json();
-                        const formattedFigure = data.map(f => ({
-                            ...f,
-                            displayTitle: f.title || f.name || 'Sem Título',
-                            displayImage: (f.images && f.images.length > 0) ? f.images[0] : (f.image || ''),
-                            source: 'global_db',
-                            category: 'Figures'
-                        }));
-                        setHeaderSearchResults(formattedFigure);
-                    } else {
-                        setHeaderSearchResults([]);
-                    }
-                } catch (error) {
-                    console.error("Erro busca header:", error);
-                    setHeaderSearchResults([]);
-                } finally {
-                    setIsHeaderSearchLoading(false);
-                }
-            } else {
-                setHeaderSearchResults([]);
+        const fetchAllData = async () => {
+            if (!globalSearchTerm.trim()) {
+                setMangaResults([]);
+                setFigureResults([]);
+                setGameResults([]);
+                return;
             }
-        }, 500);
 
-        return () => clearTimeout(delayDebounceFn);
-    }, [headerSearch, dbCategory]);
+            setIsGlobalSearchLoading(true);
+
+            // 1. Fetch de Figures (Independente)
+            try {
+                console.log("📡 1. Disparando fetch para porta 3000...");
+                const figResponse = await fetch(`http://localhost:3000/global_figures`);
+                console.log("✅ 2. Status da resposta:", figResponse.status);
+
+                if (figResponse.ok) {
+                    const allFigures = await figResponse.json();
+                    console.log("📦 3. Banco de dados bruto recebido:", allFigures);
+
+                    if (allFigures.length === 0) {
+                        console.warn("⚠️ ALERTA: O json-server retornou uma lista vazia! Ele está lendo o db.json correto?");
+                    }
+
+                    const lowerTerm = globalSearchTerm.toLowerCase();
+                    const filteredFigures = allFigures.filter(f => {
+                        const titleMatch = f.title && f.title.toLowerCase().includes(lowerTerm);
+                        const charMatch = f.character && f.character.toLowerCase().includes(lowerTerm);
+                        return titleMatch || charMatch;
+                    });
+
+                    const formattedFigures = filteredFigures.map(f => ({
+                        ...f,
+                        displayTitle: f.title || f.character || 'Sem Título',
+                        displayImage: (f.images && f.images.length > 0) ? f.images[0] : (f.image || ''),
+                        category: 'Figures',
+                        source: 'global_db'
+                    }));
+
+                    console.log("🎯 4. Figures após o filtro:", formattedFigures);
+                    setFigureResults(formattedFigures);
+                } else {
+                    console.error("❌ 2. Erro do Servidor:", figResponse.statusText);
+                }
+            } catch (error) {
+                console.error("🚨 ERRO FATAL no Fetch de Figures (O servidor está rodando?):", error);
+                setFigureResults([]);
+            }
+
+            // 2. Fetch de Mangás (Independente)
+            try {
+                const mangaResponse = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(globalSearchTerm)}&limit=8`);
+                if (mangaResponse.ok) {
+                    const mangaData = await mangaResponse.json();
+                    const formattedMangas = mangaData.data.map(m => ({
+                        id: m.mal_id.toString(),
+                        displayTitle: m.title,
+                        title: m.title,
+                        displayImage: m.images?.jpg?.image_url || '',
+                        image: m.images?.jpg?.image_url || '',
+                        subtitle: `${m.type} • ${m.status}`,
+                        category: 'Mangás',
+                        source: 'api'
+                    }));
+                    setMangaResults(formattedMangas);
+                }
+            } catch (error) {
+                console.error("Erro ao buscar Mangás:", error);
+                setMangaResults([]);
+            }
+
+            // 3. Fetch de Jogos (RAWG API)
+            try {
+                const gameResponse = await fetch(`https://api.rawg.io/api/games?search=${encodeURIComponent(globalSearchTerm)}&key=1cb7e7bb03724dbba9ff7e943765c5f0&page_size=8`);
+                if (gameResponse.ok) {
+                    const gameData = await gameResponse.json();
+                    const formattedGames = gameData.results.map(g => ({
+                        id: g.id.toString(),
+                        displayTitle: g.name,
+                        displayImage: g.background_image || '',
+                        category: 'Jogos',
+                        source: 'api_rawg'
+                    }));
+                    setGameResults(formattedGames);
+                }
+            } catch (error) {
+                console.error("❌ Erro ao buscar Jogos:", error);
+                setGameResults([]);
+            }
+
+            setIsGlobalSearchLoading(false);
+        };
+
+        fetchAllData();
+    }, [globalSearchTerm]);
 
     const handleSearchClick = async () => {
         if (!searchQuery.trim()) return;
@@ -152,15 +201,18 @@ export function Home() {
             return !isNaN(numId) && numId > max ? numId : max;
         }, 0);
 
+        const categoryToSave = apiItem.category || searchCategory;
         const newItem = {
             id: (highestId + 1).toString(),
             title: apiItem.displayTitle || apiItem.title,
             imageUrl: apiItem.displayImage || apiItem.image || apiItem.imageUrl,
             images: apiItem.images || [apiItem.displayImage || apiItem.image || apiItem.imageUrl],
-            category: apiItem.category || searchCategory,
+            category: categoryToSave,
             status: "Backlog",
             score: null,
             isWishlist: false,
+            format: categoryToSave === 'Jogos' ? gameFormat : null,
+            dateAdded: new Date().toISOString()
         };
 
         if (apiItem.company || (apiItem.details && apiItem.details.fabricante)) {
@@ -205,8 +257,15 @@ export function Home() {
                 {/* Top Row: Title & Search Actions */}
                 <div className="flex flex-col md:flex-row items-start justify-between gap-4 w-full">
                     {/* Top Title */}
-                    <div className="transform -skew-x-6">
-                        <h1 className="text-3xl md:text-4xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626]">
+                    <div
+                        className="transform -skew-x-6 cursor-pointer group"
+                        onClick={() => {
+                            setActiveTab("Database");
+                            setGlobalSearchTerm("");
+                            setHeaderSearch("");
+                        }}
+                    >
+                        <h1 className="text-3xl md:text-4xl font-black italic text-white tracking-tighter drop-shadow-[4px_4px_0_#dc2626] group-hover:text-red-500 transition-colors">
                             MINHA COLEÇÃO
                         </h1>
                         <p className="text-white bg-black px-2 mt-2 w-max text-[10px] sm:text-xs uppercase font-bold tracking-widest shadow-[2px_2px_0_#dc2626]">
@@ -216,47 +275,24 @@ export function Home() {
 
                     {/* Right Side: Search & Add */}
                     <div className="flex items-center gap-4 w-full md:w-auto relative z-50">
-                        <div className="relative w-full md:w-64 transform -skew-x-6">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                                <Search size={16} className="text-gray-400" />
-                            </div>
+                        <div className="relative flex items-center w-full max-w-md transform -skew-x-6">
+                            <svg className="absolute left-3 w-5 h-5 text-gray-400 z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
                             <input
                                 type="text"
                                 value={headerSearch}
                                 onChange={(e) => setHeaderSearch(e.target.value)}
-                                onFocus={() => setIsSearchFocused(true)}
-                                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                placeholder="Pesquisar..."
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        setGlobalSearchTerm(headerSearch);
+                                        setActiveTab("SearchResults");
+                                        setIsModalOpen(false); // Close Add Modal if it is somehow open
+                                    }
+                                }}
+                                placeholder="Pesquisar"
                                 className="w-full bg-black border-2 border-white/20 text-white pl-10 pr-4 py-2 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-red-600 focus:shadow-[4px_4px_0_#dc2626] transition-all placeholder-gray-500 relative z-10"
                             />
-
-                            {/* Live Search Dropdown */}
-                            {isSearchFocused && headerSearch.length > 0 && (
-                                <div className="absolute top-full right-0 w-full mt-2 bg-slate-800 border-2 border-slate-700 shadow-[4px_4px_0_#dc2626] z-50 overflow-hidden flex flex-col max-h-96 overflow-y-auto" style={{ clipPath: "polygon(2% 0%, 100% 0%, 98% 100%, 0% 100%)" }}>
-                                    {headerSearchResults.length > 0 ? (
-                                        headerSearchResults.map((item) => (
-                                            <div key={`search-${item.id}`} className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-700/50 last:border-0 transform skew-x-6" onMouseDown={(e) => {
-                                                e.preventDefault(); // Prevents blur
-                                                setHeaderSearch(""); // Clear search string
-                                                setIsSearchFocused(false);
-                                                setSelectedDetailsItem(item); // Open Ficha Técnica
-                                            }}>
-                                                <img src={item.displayImage} alt={item.displayTitle} className="w-10 h-10 object-cover border border-white/20 shrink-0" style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }} />
-                                                <div className="flex-1 truncate">
-                                                    <p className="text-white text-xs md:text-sm font-black uppercase tracking-widest truncate">{item.displayTitle}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.category}</p>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="p-4 text-center transform skew-x-6">
-                                            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic">
-                                                {isHeaderSearchLoading ? "BUSCANDO..." : "NENHUM ITEM ENCONTRADO NO CATÁLOGO GLOBAL."}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                         </div>
                         <button
                             onClick={() => setIsModalOpen(true)}
@@ -324,6 +360,138 @@ export function Home() {
             {/* Tab Content */}
             <main className="w-full min-h-[50vh]">
                 <AnimatePresence mode="wait">
+
+                    {/* SEARCH RESULTS TAB */}
+                    {activeTab === "SearchResults" && (
+                        <motion.section
+                            key="search-results"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-6"
+                        >
+                            <div className="transform -skew-x-2 mb-8 mt-4">
+                                <h2 className="text-2xl md:text-3xl font-black italic text-white tracking-tighter drop-shadow-[2px_2px_0_#dc2626] uppercase">
+                                    RESULTADOS PARA: "{globalSearchTerm}"
+                                </h2>
+                                <div className="h-1 w-24 bg-red-600 mt-1 shadow-[2px_2px_0_#fff]" />
+                            </div>
+
+                            {/* Tab System for Search Results */}
+                            <div className="flex gap-4 mb-6 transform -skew-x-6">
+                                {['Mangás', 'Figures', 'Jogos'].map(tab => (
+                                    <button
+                                        key={`search-tab-${tab}`}
+                                        onClick={() => setSearchResultTab(tab)}
+                                        className={`px-6 py-2 text-sm md:text-base font-black uppercase tracking-widest transition-none border-2 shrink-0 ${searchResultTab === tab
+                                            ? "bg-red-600 text-white border-red-600 shadow-[4px_4px_0px_rgba(0,0,0,0.5)]"
+                                            : "bg-slate-800 text-gray-400 border-slate-700 hover:bg-slate-700 hover:text-white"
+                                            }`}
+                                        style={{ clipPath: "polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%)" }}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {isGlobalSearchLoading ? (
+                                <p className="text-center text-white font-bold italic py-8 animate-pulse uppercase tracking-widest">Buscando informações em toda a rede...</p>
+                            ) : (
+                                <>
+                                    {searchResultTab === 'Mangás' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                            {mangaResults.length > 0 ? mangaResults.map(item => (
+                                                <div
+                                                    key={`res-manga-${item.id}`}
+                                                    onClick={() => setSelectedDetailsItem(item)}
+                                                    className="group relative bg-slate-800 border-2 border-transparent hover:border-red-600 transition-all cursor-pointer transform hover:-translate-y-2 hover:shadow-[8px_8px_0_#dc2626] skew-x-0"
+                                                >
+                                                    <div className="aspect-[3/4] overflow-hidden">
+                                                        <img
+                                                            src={item.displayImage}
+                                                            alt={item.displayTitle}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                                            <Plus className="text-red-500 mb-2" size={24} />
+                                                            <span className="text-white font-black text-xs uppercase tracking-widest">Ver Detalhes</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-3 bg-black transform skew-x-0">
+                                                        <p className="font-bold text-white text-sm line-clamp-2 uppercase tracking-tight">{item.displayTitle}</p>
+                                                        <p className="text-xs text-red-500 mt-1 font-bold tracking-widest">{item.category}</p>
+                                                    </div>
+                                                </div>
+                                            )) : <p className="text-gray-500 font-bold uppercase tracking-widest col-span-full text-center py-8">Nenhum mangá encontrado no catálogo global.</p>}
+                                        </div>
+                                    )}
+                                    {searchResultTab === 'Figures' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                            {figureResults.length > 0 ? figureResults.map(item => (
+                                                <div
+                                                    key={`res-figure-${item.id}`}
+                                                    onClick={() => setSelectedDetailsItem(item)}
+                                                    className="group relative bg-slate-800 border-2 border-transparent hover:border-red-600 transition-all cursor-pointer transform hover:-translate-y-2 hover:shadow-[8px_8px_0_#dc2626] skew-x-0"
+                                                >
+                                                    <div className="aspect-[3/4] overflow-hidden bg-white/5 flex items-center justify-center">
+                                                        {item.displayImage ? (
+                                                            <img
+                                                                src={item.displayImage}
+                                                                alt={item.displayTitle}
+                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-gray-600 font-black text-xs transform -rotate-45 block">SEM FOTO</span>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                                            <Plus className="text-red-500 mb-2" size={24} />
+                                                            <span className="text-white font-black text-xs uppercase tracking-widest">Ver Detalhes</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-3 bg-black transform skew-x-0">
+                                                        <p className="font-bold text-white text-sm line-clamp-2 uppercase tracking-tight">{item.displayTitle}</p>
+                                                        <p className="text-xs text-red-500 mt-1 font-bold tracking-widest">{item.category}</p>
+                                                    </div>
+                                                </div>
+                                            )) : <p className="text-gray-500 font-bold uppercase tracking-widest col-span-full text-center py-8">Nenhuma figure encontrada no catálogo global.</p>}
+                                        </div>
+                                    )}
+                                    {searchResultTab === 'Jogos' && (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                                            {gameResults.length > 0 ? gameResults.map(item => (
+                                                <div
+                                                    key={`res-game-${item.id}`}
+                                                    onClick={() => setSelectedDetailsItem(item)}
+                                                    className="group relative bg-slate-800 border-2 border-transparent hover:border-red-600 transition-all cursor-pointer transform hover:-translate-y-2 hover:shadow-[8px_8px_0_#dc2626] skew-x-0"
+                                                >
+                                                    <div className="aspect-[3/4] overflow-hidden bg-white/5 flex items-center justify-center">
+                                                        {item.displayImage ? (
+                                                            <img
+                                                                src={item.displayImage}
+                                                                alt={item.displayTitle}
+                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-gray-600 font-black text-xs transform -rotate-45 block">SEM FOTO</span>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
+                                                            <Plus className="text-red-500 mb-2" size={24} />
+                                                            <span className="text-white font-black text-xs uppercase tracking-widest">Ver Detalhes</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-3 bg-black transform skew-x-0">
+                                                        <p className="font-bold text-white text-sm line-clamp-2 uppercase tracking-tight">{item.displayTitle}</p>
+                                                        <p className="text-xs text-red-500 mt-1 font-bold tracking-widest">{item.category}</p>
+                                                    </div>
+                                                </div>
+                                            )) : <p className="text-gray-500 font-bold uppercase tracking-widest col-span-full text-center py-8">Nenhum jogo encontrado no catálogo global.</p>}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </motion.section>
+                    )}
 
                     {/* EXPLORE TAB (Adicionados Recentes) */}
                     {activeTab === "Explore" && (
@@ -731,6 +899,19 @@ export function Home() {
                                 <span className="text-gray-400 font-bold block">Dimensões:</span>
                                 <span className="text-white text-lg">{selectedDetailsItem.dimensions || selectedDetailsItem.dimensoes || (selectedDetailsItem.details && selectedDetailsItem.details.escala) || 'Não especificadas'}</span>
                             </div>
+
+                            {selectedDetailsItem.category === 'Jogos' && (
+                                <div className="flex gap-4 mb-4 mt-2">
+                                    <label className="flex items-center gap-2 text-white font-bold tracking-wider uppercase cursor-pointer hover:text-red-500 transition-colors">
+                                        <input type="radio" name="format" value="Físico" checked={gameFormat === 'Físico'} onChange={(e) => setGameFormat(e.target.value)} className="accent-red-600 w-5 h-5 cursor-pointer" />
+                                        Físico
+                                    </label>
+                                    <label className="flex items-center gap-2 text-white font-bold tracking-wider uppercase cursor-pointer hover:text-red-500 transition-colors">
+                                        <input type="radio" name="format" value="Digital" checked={gameFormat === 'Digital'} onChange={(e) => setGameFormat(e.target.value)} className="accent-red-600 w-5 h-5 cursor-pointer" />
+                                        Digital
+                                    </label>
+                                </div>
+                            )}
 
                             <button
                                 onClick={() => {
